@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import logging
 import json
+import ssl
 
 VERSION = '0.2.0'
 
@@ -15,7 +16,7 @@ class Pusher(object):
     def __init__(self, key, cluster=None, secure=True, secret=None, user_data=None, log_level=logging.INFO,
                  daemon=True, port=None, reconnect_interval=10, custom_host=None, auto_sub=False,
                  http_proxy_host=None, http_proxy_port=None, http_no_proxy=None, http_proxy_auth=None,
-                 **thread_kwargs):
+                 ssl_verify=True, hostname_verify=True, **thread_kwargs):
         # https://pusher.com/docs/clusters
         if cluster:
             self.host = "ws-{cluster}.pusher.com".format(cluster=cluster)
@@ -33,6 +34,12 @@ class Pusher(object):
         else:
             reconnect_handler = None
 
+        sslopt = {}
+        if not ssl_verify:
+            sslopt['cert_reqs'] = ssl.CERT_NONE
+        if not hostname_verify:
+            sslopt['check_hostname'] = False
+
         self.connection = Connection(self._connection_handler, self.url,
                                      reconnect_handler=reconnect_handler,
                                      log_level=log_level,
@@ -41,7 +48,8 @@ class Pusher(object):
                                      socket_kwargs=dict(http_proxy_host=http_proxy_host,
                                                         http_proxy_port=http_proxy_port,
                                                         http_no_proxy=http_no_proxy,
-                                                        http_proxy_auth=http_proxy_auth),
+                                                        http_proxy_auth=http_proxy_auth,
+                                                        sslopt=sslopt),
                                      **thread_kwargs)
 
     def connect(self):
